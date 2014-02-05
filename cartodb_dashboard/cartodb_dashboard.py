@@ -21,9 +21,9 @@ class CartoDBDashboardException(Exception):
     pass
 
 
-class  CartoDbUtilities:
+class  CartoDbDashboard:
     """
-    this class contains utility methods for performing operations on the CartoDB REST Admin API.
+    this class contains methods for performing operations exposed by the CartoDB Dashboard.
     """
 
     def __init__(self, cartodb_domain, user, password, host='cartodb.com', protocol='https', api_version='v1'):
@@ -61,37 +61,6 @@ class  CartoDbUtilities:
             raise CartoDBDashboardException('internal server error')
 
         return None
-
-    def convert_data_type(self,column,datatype,table):
-        headers = self.request_session_headers()
-        body = {'name': column, 'type': datatype}
-        url = self.table_url +'/'+table +'/columns/'+column
-        return self.req(url, 'PUT', http_headers=headers, body=urllib.urlencode(body))
-
-    def check_imports(self):
-        headers = self.request_session_headers()
-        return self.req(self.import_url,'GET', http_headers=headers)
-
-    def check_import(self,importid):
-        headers = self.request_session_headers()
-        return self.req(self.import_url+'/'+str(importid),'GET', http_headers=headers)['state']
-
-    def import_data(file):
-
-    try:
-        importid = self.__import_data(file)
-        check = 0;
-        while check==0:
-            if self.check_import(importid) == 'uploading' or self.check_import(importid) == 'importing':
-                continue
-            elif self.check_import(importid) == 'complete':
-                check = 1
-        
-        return 0
-    except CartoDBException as e:
-        print ("some error ocurred", e)
-        return 1
-
 
     def __import_data(self,file):
         sessionbody = {'email': self.session_user, 'password': self.session_password}
@@ -132,6 +101,47 @@ class  CartoDbUtilities:
         headers['Cookie'] = response['set-cookie']
 
         return self.req(self.import_url, 'POST', http_headers=headers, body=body)['item_queue_id']
+
+    def __convert_data_type(self,column,datatype,table):
+        headers = self.request_session_headers()
+        body = {'name': column, 'type': datatype}
+        url = self.table_url +'/'+table +'/columns/'+column
+        return self.req(url, 'PUT', http_headers=headers, body=urllib.urlencode(body))
+
+    def check_imports(self):
+        headers = self.request_session_headers()
+        return self.req(self.import_url,'GET', http_headers=headers)
+
+    def check_import(self,importid):
+        headers = self.request_session_headers()
+        return self.req(self.import_url+'/'+str(importid),'GET', http_headers=headers)
+
+    def convert_data_type(self, column, datatype, table):
+        try:
+            self.__convert_data_type(column,datatype,table)
+            return 0
+        except CartoDBDashboardException as e:
+            print ("some error ocurred:", e)
+            return 1
+
+    def import_data(self, file):
+        try:
+            importid = self.__import_data(file)
+            check = 0;
+            while check==0:
+                res = self.check_import(importid)
+                if res['state'] == 'uploading' or res['state'] == 'importing':
+                    continue
+                elif res['state'] == 'complete':
+                    check = 1
+            
+            return 0, res['table_name']
+        except CartoDBDashboardException as e:
+            print ("some error ocurred:", e)
+            return 1
+
+
+
 
 
 
