@@ -3,7 +3,7 @@ from setuptools import setup
 import sys
 
 
-REQUIRES = ['simplejson']
+REQUIRES = ['simplejson', 'httplib2']
 
 setup(name='cartodb_dashboard', 
       author = 'Simon Hope', 
@@ -13,5 +13,6 @@ setup(name='cartodb_dashboard',
       url='https://git.realestate.com.au/geodata/cartodb-dashboard-python',
       install_requires=REQUIRES,
       packages=['cartodb_dashboard'],
-      requires = REQUIRES
+      requires = REQUIRES,
+      test_suite='test.client'
 )
