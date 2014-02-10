@@ -31,7 +31,7 @@ class CartoDbDashboardTestClient(CartoDbDashboardTest, unittest.TestCase):
         cartodb_user = os.environ['CARTODB_USER']
         cartodb_password = os.environ['CARTODB_PWD']
 
-        self.client = CartoDbDashboard(cartodb_domain, cartodb_user, cartodb_password, cartodb_host, cartodb_protocol,
+        self.client = CartoDbDashboard(cartodb_domain+':'+CARTODB_API_PORT, cartodb_user, cartodb_password, cartodb_host, cartodb_protocol,
                                        cartodb_version)
 
 if __name__ == '__main__':
