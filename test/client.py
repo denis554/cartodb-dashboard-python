@@ -24,7 +24,7 @@ class CartoDbDashboardTest(object):
 
 class CartoDbDashboardTestClient(CartoDbDashboardTest, unittest.TestCase):
     def setUp(self):
-        cartodb_domain = os.environ['CARTDOB_DOMAIN']
+        cartodb_domain = os.environ['CARTODB_DOMAIN']
         cartodb_host = os.environ['CARTODB_HOST']
         cartodb_protocol = os.environ['CARTODB_PROTOCOL']
         cartodb_version = os.environ['CARTODB_VERSION']
