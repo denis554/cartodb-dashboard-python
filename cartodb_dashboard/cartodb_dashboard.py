@@ -1,6 +1,4 @@
 # -*- encoding: utf-8 -*-
-#todo - add header
-
 from urllib import urlencode
 from httplib2 import Http
 from os import path
@@ -13,6 +11,7 @@ except ImportError:
 IMPORT_URL = '%(protocol)s://%(user)s.%(domain)s/api/%(api_version)s/imports'
 SESSION_URL = '%(protocol)s://%(user)s.%(domain)s/sessions/create'
 TABLES_URL = '%(protocol)s://%(user)s.%(domain)s/api/%(api_version)s/tables'
+VIZ_URL = '%(protocol)s://%(user)s.%(domain)s/api/%(api_version)s/viz'
 
 
 class CartoDBDashboardException(Exception):
@@ -20,13 +19,14 @@ class CartoDBDashboardException(Exception):
 
 
 class CartoDbDashboard:
-
     def __init__(self, cartodb_domain, user, password, host='cartodb.com', protocol='https', api_version='v1'):
         self.import_url = IMPORT_URL % {'user': cartodb_domain, 'domain': host, 'protocol': protocol,
                                         'api_version': api_version}
         self.session_url = SESSION_URL % {'user': cartodb_domain, 'domain': host, 'protocol': protocol}
         self.table_url = TABLES_URL % {'user': cartodb_domain, 'domain': host, 'protocol': protocol,
                                        'api_version': api_version}
+        self.viz_url = VIZ_URL % {'user': cartodb_domain, 'domain': host, 'protocol': protocol,
+                                  'api_version': api_version}
         self.client = Http()
         self.session_user = user
         self.session_password = password
@@ -44,6 +44,8 @@ class CartoDbDashboard:
             resp, content = self.client.request(url, "POST", body=body, headers=http_headers)
         elif http_method == "PUT":
             resp, content = self.client.request(url, "PUT", body=body, headers=http_headers)
+        elif http_method == "DELETE":
+            resp, content = self.client.request(url, "DELETE", headers=http_headers)
         else:
             resp, content = self.client.request(url, "GET", headers=http_headers)
 
@@ -62,13 +64,13 @@ class CartoDbDashboard:
         response, content = self.client.request(self.session_url, 'POST', headers=sessionheaders, body=urlencode(sessionbody))
 
         def encode(file_path, fields=[]):
-            BOUNDARY = '----------boundary------'
-            CRLF = '\r\n'
-            body = []
+            boundary = '----------boundary------'
+            crlf = '\r\n'
+            encode_body = []
 
             for key, value in fields:
-                body.extend(
-                    ['--' + BOUNDARY,
+                encode_body.extend(
+                    ['--{0}'.format(boundary),
                      'Content-Disposition: form-data; name="%s"' % key,
                      '',
                      value,
@@ -78,8 +80,8 @@ class CartoDbDashboard:
             f = open(file_path, 'rb')
             file_content = f.read()
             f.close()
-            body.extend(
-                ['--' + BOUNDARY,
+            encode_body.extend(
+                ['--' + boundary,
                  'Content-Disposition: form-data; name="file"; filename="%s"'
                  % file_name,
                  'Content-Type: application/octet-stream',
@@ -87,8 +89,8 @@ class CartoDbDashboard:
                  file_content,
                 ])
 
-            body.extend(['--' + BOUNDARY + '--', ''])
-            return 'multipart/form-data; boundary=%s' % BOUNDARY, CRLF.join(body)
+            encode_body.extend(['--' + boundary + '--', ''])
+            return 'multipart/form-data; boundary=%s' % boundary, crlf.join(encode_body)
 
         content_type, body = encode(datafile)
         headers = {'Content-Type': content_type, 'Cookie': response['set-cookie']}
@@ -134,11 +136,23 @@ class CartoDbDashboard:
             print ("some error occurred:", e)
             return False
 
+    def get_table(self, table):
+        headers = self.request_session_headers
+        url = self.table_url + '/' + table
+        return self.req(url, 'GET', http_headers=headers)
 
+    def __delete_table(self, table_viz_id):
+        headers = self.request_session_headers
+        url = self.viz_url + '/' + table_viz_id
+        return self.req(url, 'DELETE', http_headers=headers)
 
+    def delete_data(self, table):
+        try:
+            #check the table exists and return the table viz id
+            table_visid = self.get_table(table)['table_visualization']['id']
+            #send delete command
+            return self.__delete_table(table_visid)
 
-
-
-
-
-
+        except CartoDBDashboardException as e:
+            print ("some error occurred:", e)
+            return False

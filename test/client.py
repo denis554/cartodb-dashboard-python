@@ -21,6 +21,18 @@ class CartoDbDashboardTest(object):
         self.assertTrue(result)
         self.assertTrue(self.client.convert_data_type("POINT_PID", "number", table))
 
+    def test_get_table(self):
+        result, table = self.client.import_data('test/testdata/schools.csv')
+        self.assertTrue(result)
+        table_res =  self.client.get_table(table)['table_visualization']['name']
+        self.assertTrue(table,table_res)
+
+    def test_delete_table(self):
+        result, table = self.client.import_data('test/testdata/schools.csv')
+        self.assertTrue(result)
+        print self.client.delete_data(table)
+
+
 
 class CartoDbDashboardTestClient(CartoDbDashboardTest, unittest.TestCase):
     def setUp(self):

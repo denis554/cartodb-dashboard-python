@@ -5,8 +5,9 @@ cartodb-dashboard-python
 
 Python API for CartoDB Dashboard. Provides access to the following operations on the CartoDB API
 
-+ Import
++ Import table
 + Column data type changes
++ Delete table
 
 # Requirements: 
 
