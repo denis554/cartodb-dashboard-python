@@ -1,4 +1,4 @@
-[![Build Status](https://buildhive.cloudbees.com/job/realestate-com-au/job/cartodb-dashboard-python/badge/icon)](https://buildhive.cloudbees.com/job/realestate-com-au/job/cartodb-dashboard-python//)
+[![Build Status](https://buildhive.cloudbees.com/job/realestate-com-au/job/cartodb-dashboard-python/badge/icon)](https://buildhive.cloudbees.com/job/realestate-com-au/job/cartodb-dashboard-python/)
 
 cartodb-dashboard-python
 ========================
