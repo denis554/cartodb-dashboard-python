@@ -3,17 +3,32 @@
 cartodb-dashboard-python
 ========================
 
-Python API for CartoDB Dashboard
+Python API for CartoDB Dashboard. Provides access to the following operations on the CartoDB API
+
++ Import
++ Column data type changes
 
 # Requirements: 
 
 + Simplejson
++ httplib2
 
 # Install
 
 + clone repo
 + cd to cloned directory
-+ sudo python setup.py install
+
+```bash
+python setup.py install
+```
+
+# Usage
+
+```python
+client = CartoDbDashboard(cartodb_domain, cartodb_user, cartodb_password, cartodb_host+':'+cartodb_api_port,
+cartodb_protocol, cartodb_version)
+client.import_data('test/testdata/localities.zip')
+```
 
 
 # Tests
