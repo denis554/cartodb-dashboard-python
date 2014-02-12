@@ -23,6 +23,12 @@ Python API for CartoDB Dashboard. Provides access to the following operations on
 python setup.py install
 ```
 
+Or you can install from PyPi
+
+```bash
+pip install cartodb_dashboard
+```
+
 # Usage
 
 ```python
