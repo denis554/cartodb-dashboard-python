@@ -8,6 +8,7 @@ Python API for CartoDB Dashboard. Provides access to the following operations on
 + Import table
 + Column data type changes
 + Delete table
++ Rename table
 
 <strong>IMPORTANT</strong>: This module works against a non published API which is subject to change. It has been tested without issue against the following CartoDB versions:
 
