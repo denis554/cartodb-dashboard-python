@@ -2,6 +2,7 @@
 from urllib import urlencode
 from httplib2 import Http
 from os import path
+from mako.template import Template
 
 try:
     import json
@@ -16,6 +17,18 @@ VIZ_URL = '%(protocol)s://%(user)s.%(domain)s/api/%(api_version)s/viz'
 
 class CartoDBDashboardException(Exception):
     pass
+
+
+class CartoDBTableInfo:
+    def __init__(self, table_info_response):
+        self.table_viz_id = table_info_response['table_visualization']['id']
+        self.table_map_id = table_info_response['table_visualization']['map_id']
+        self.table_privacy = table_info_response['table_visualization']['table']['privacy']
+        self.table_id = table_info_response['table_visualization']['table']['id']
+        self.table_size = table_info_response['table_visualization']['table']['size']
+        self.table_row_count = table_info_response['table_visualization']['table']['row_count']
+        self.updated_at = table_info_response['table_visualization']['table']['updated_at']
+        self.created_at = table_info_response['table_visualization']['created_at']
 
 
 class CartoDbDashboard:
@@ -52,7 +65,7 @@ class CartoDbDashboard:
         if resp['status'] == '200':
             return json.loads(content)
         elif resp['status'] == '400':
-            raise CartoDBDashboardException(json.loads(content)['error'])
+            raise CartoDBDashboardException(json.loads(content))
         elif resp['status'] == '500':
             raise CartoDBDashboardException('internal server error')
 
@@ -149,10 +162,30 @@ class CartoDbDashboard:
     def delete_data(self, table):
         try:
             #check the table exists and return the table viz id
-            table_visid = self.get_table(table)['table_visualization']['id']
+            table_vis_id = self.get_table(table)['table_visualization']['id']
             #send delete command
-            return self.__delete_table(table_visid)
+            return self.__delete_table(table_vis_id)
 
         except CartoDBDashboardException as e:
             print ("some error occurred:", e)
             return False
+
+    def rename_table(self, template, table_name, new_table_name):
+        try:
+            template = Template(
+                '{"id": "${vis_id}", "name": "${table_name}", "map_id": ${map_id}, "type": "table", "tags": [], "description": null, "privacy": "${table_privacy}", "table": {"id": ${table_id}, "name": "${table_name}", "privacy": "${table_privacy}", "size": ${table_size}, "row_count": ${table_row_count}, "updated_at": "${updated_at}"}, "synchronization": null, "created_at": "${created_at}", "updated_at": "${updated_at}"}')
+            table_info = CartoDBTableInfo(self.get_table(table_name))
+
+            body = template.render(vis_id=table_info.table_viz_id, table_name=new_table_name, map_id=table_info.table_map_id,
+                                   table_privacy=table_info.table_privacy, table_id=table_info.table_id, table_size=table_info.table_size, table_row_count=table_info
+                                   .table_row_count, updated_at=table_info.updated_at, created_at=table_info.created_at)
+
+            headers = self.request_session_headers
+            url = self.viz_url + '/' + table_info.table_viz_id
+            self.req(url, 'PUT', http_headers=headers, body=body)
+            return True
+
+        except CartoDBDashboardException as e:
+            print ("some error occurred:", e)
+            return False
+
