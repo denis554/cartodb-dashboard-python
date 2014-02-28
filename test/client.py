@@ -4,7 +4,6 @@ from cartodb_dashboard import CartoDbDashboard
 
 
 NEW_TABLE_NAME = 'test_table_can_delete'
-TEMPLATE_PATH = '/templates/template_table_rename.json'
 TEST_SHPFILE = 'test/testdata/localities.zip'
 TEST_CSV = 'test/testdata/schools.csv'
 
@@ -49,10 +48,16 @@ class CartoDbDashboardTest(object):
     def test_rename_table(self):
 
         result, table = self.client.import_data(TEST_CSV)
-        rename_success = self.client.rename_table(TEMPLATE_PATH, table, NEW_TABLE_NAME)
+        rename_success = self.client.rename_table(table, NEW_TABLE_NAME)
         self.assertTrue(rename_success)
         if rename_success:
             self.client.delete_data(NEW_TABLE_NAME)
+
+    def test_rename_table_that_does_not_exist(self):
+        rename_success = self.client.rename_table("doesnotexist", "hardluck")
+        self.assertFalse(rename_success)
+
+  
 
 class CartoDbDashboardTestClient(CartoDbDashboardTest, unittest.TestCase):
     def setUp(self):
