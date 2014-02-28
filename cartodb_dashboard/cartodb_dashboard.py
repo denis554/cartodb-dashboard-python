@@ -21,17 +21,15 @@ class CartoDBDashboardException(Exception):
 
 class CartoDBTableInfo:
     def __init__(self, table_info_response):
-        try:
-            self.table_viz_id = table_info_response['table_visualization']['id']
-            self.table_map_id = table_info_response['table_visualization']['map_id']
-            self.table_privacy = table_info_response['table_visualization']['table']['privacy']
-            self.table_id = table_info_response['table_visualization']['table']['id']
-            self.table_size = table_info_response['table_visualization']['table']['size']
-            self.table_row_count = table_info_response['table_visualization']['table']['row_count']
-            self.updated_at = table_info_response['table_visualization']['table']['updated_at']
-            self.created_at = table_info_response['table_visualization']['created_at']
-        except:
-            raise CartoDBDashboardException('An error occurred trying to get table information')
+        self.table_viz_id = table_info_response['table_visualization']['id']
+        self.table_map_id = table_info_response['table_visualization']['map_id']
+        self.table_privacy = table_info_response['table_visualization']['table']['privacy']
+        self.table_id = table_info_response['table_visualization']['table']['id']
+        self.table_size = table_info_response['table_visualization']['table']['size']
+        self.table_row_count = table_info_response['table_visualization']['table']['row_count']
+        self.updated_at = table_info_response['table_visualization']['table']['updated_at']
+        self.created_at = table_info_response['table_visualization']['created_at']
+
 
 class CartoDbDashboard:
     def __init__(self, cartodb_domain, user, password, host='cartodb.com', protocol='https', api_version='v1'):
@@ -68,6 +66,8 @@ class CartoDbDashboard:
             return json.loads(content)
         elif resp['status'] == '400':
             raise CartoDBDashboardException(json.loads(content))
+        elif resp['status'] == '404':
+            raise CartoDBDashboardException('Page Not Found')
         elif resp['status'] == '500':
             raise CartoDBDashboardException('internal server error')
 
@@ -156,8 +156,8 @@ class CartoDbDashboard:
             headers = self.request_session_headers
             url = self.table_url + '/' + table
             return self.req(url, 'GET', http_headers=headers)
-        except:
-            raise CartoDBDashboardException("An error occurred trying to get table information for table:" + table)
+        except Exception as e:
+            raise CartoDBDashboardException("An error occurred trying to get table information for table:" + table, e)
 
     def __delete_table(self, table_viz_id):
         headers = self.request_session_headers
