@@ -12,12 +12,17 @@ Python API for CartoDB Dashboard. Provides access to the following operations on
 
 <strong>IMPORTANT</strong>: This module works against a non published API which is subject to change. It has been tested without issue against the following CartoDB versions:
 
-+ 2.3.2 - 2.9.1
+| Cartodb Dashboard Client Version   | CartoDB Version |
+|----------|:-------------:|
+| < 0.2 | 2.3.0 -  2.9.0   |
+| > 0.2.1 | > 2.9.1  |
+
 
 # Requirements: 
 
 + Simplejson
 + httplib2
++ mako
 
 # Install
 

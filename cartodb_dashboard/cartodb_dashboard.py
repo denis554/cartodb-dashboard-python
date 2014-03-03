@@ -25,8 +25,7 @@ class CartoDBTableInfo:
         self.table_map_id = table_info_response['table_visualization']['map_id']
         self.table_privacy = table_info_response['table_visualization']['table']['privacy']
         self.table_id = table_info_response['table_visualization']['table']['id']
-        self.table_size = table_info_response['table_visualization']['table']['size']
-        self.table_row_count = table_info_response['table_visualization']['table']['row_count']
+        self.table_name = table_info_response['table_visualization']['table']['name']
         self.updated_at = table_info_response['table_visualization']['table']['updated_at']
         self.created_at = table_info_response['table_visualization']['created_at']
 
@@ -177,13 +176,14 @@ class CartoDbDashboard:
 
     def rename_table(self, table_name, new_table_name):
         try:
-            template = Template(
-                '{"id": "${vis_id}", "name": "${table_name}", "map_id": ${map_id}, "type": "table", "tags": [], "description": null, "privacy": "${table_privacy}", "table": {"id": ${table_id}, "name": "${table_name}", "privacy": "${table_privacy}", "size": ${table_size}, "row_count": ${table_row_count}, "updated_at": "${updated_at}"}, "synchronization": null, "created_at": "${created_at}", "updated_at": "${updated_at}"}')
+            template = Template('{"id": "${id}", "name": "${new_table_name}", "map_id": "${map_id}","type": "table", "tags": [], '
+                                '"description": null, "privacy": "${table_privacy}", "created_at": "${created_at}", "updated_at": "${updated_at}", "table": {"id": "${table_id}", "name": "${table_name}", "privacy": "${table_privacy}", "updated_at": "${updated_at}"}, "synchronization": null }')
+
             table_info = CartoDBTableInfo(self.get_table(table_name))
 
-            body = template.render(vis_id=table_info.table_viz_id, table_name=new_table_name, map_id=table_info.table_map_id,
-                                   table_privacy=table_info.table_privacy, table_id=table_info.table_id, table_size=table_info.table_size, table_row_count=table_info
-                                   .table_row_count, updated_at=table_info.updated_at, created_at=table_info.created_at)
+            body = template.render(id=table_info.table_viz_id, new_table_name=new_table_name, map_id=table_info.table_map_id,
+                                   table_privacy=table_info.table_privacy, created_at=table_info.created_at, updated_at=table_info.updated_at, table_id=table_info.table_id,
+                                   table_name=table_info.table_name)
 
             headers = self.request_session_headers
             url = self.viz_url + '/' + table_info.table_viz_id
