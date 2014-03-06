@@ -2,7 +2,6 @@
 from urllib import urlencode
 from httplib2 import Http
 from os import path
-from mako.template import Template
 
 try:
     import json
@@ -176,17 +175,10 @@ class CartoDbDashboard:
 
     def rename_table(self, table_name, new_table_name):
         try:
-            template = Template('{"id": "${id}", "name": "${new_table_name}", "map_id": "${map_id}","type": "table", "tags": [], '
-                                '"description": null, "privacy": "${table_privacy}", "created_at": "${created_at}", "updated_at": "${updated_at}", "table": {"id": "${table_id}", "name": "${table_name}", "privacy": "${table_privacy}", "updated_at": "${updated_at}"}, "synchronization": null }')
-
-            table_info = CartoDBTableInfo(self.get_table(table_name))
-
-            body = template.render(id=table_info.table_viz_id, new_table_name=new_table_name, map_id=table_info.table_map_id,
-                                   table_privacy=table_info.table_privacy, created_at=table_info.created_at, updated_at=table_info.updated_at, table_id=table_info.table_id,
-                                   table_name=table_info.table_name)
+            body = urlencode({ 'name': new_table_name })
 
             headers = self.request_session_headers
-            url = self.viz_url + '/' + table_info.table_viz_id
+            url = self.table_url  + '/' + table_name
             self.req(url, 'PUT', http_headers=headers, body=body)
             return True
 
