@@ -2,7 +2,7 @@
 from setuptools import setup
 
 
-REQUIRES = ['simplejson', 'httplib2', 'mako']
+REQUIRES = ['simplejson', 'httplib2']
 
 setup(name='cartodb_dashboard', 
       author = 'Simon Hope', 
