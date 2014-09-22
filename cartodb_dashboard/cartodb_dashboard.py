@@ -186,3 +186,14 @@ class CartoDbDashboard:
             print ("some error occurred:", e)
             return False
 
+
+    def table_exists(self, table_name):
+        try:
+            headers = self.request_session_headers
+            url = self.table_url + '/' + table_name
+            self.req(url, 'GET', http_headers=headers)
+            return True
+
+        except CartoDBDashboardException as e:
+            print ("some error occurred:", e)
+            return False
