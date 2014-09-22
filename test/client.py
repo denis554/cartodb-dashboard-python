@@ -57,7 +57,19 @@ class CartoDbDashboardTest(object):
         rename_success = self.client.rename_table("doesnotexist", "hardluck")
         self.assertFalse(rename_success)
 
-  
+    def test_table_exists(self):
+        try:
+          self.client.import_data(TEST_CSV)
+          result = self.client.table_exists('schools')
+          self.assertTrue(result)
+
+        finally:
+            self.client.delete_data('schools')
+
+    def test_table_exists_when_table_does_not_exist(self):
+        result = self.client.table_exists('doesnotexist')
+        self.assertFalse(result)
+
 
 class CartoDbDashboardTestClient(CartoDbDashboardTest, unittest.TestCase):
     def setUp(self):
@@ -75,4 +87,3 @@ class CartoDbDashboardTestClient(CartoDbDashboardTest, unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
