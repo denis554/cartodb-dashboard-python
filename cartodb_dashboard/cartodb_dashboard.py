@@ -195,5 +195,5 @@ class CartoDbDashboard:
             return True
 
         except CartoDBDashboardException as e:
-            print ("some error occurred:", e)
+            print ("Table " + table_name + " doesn't exist")
             return False
