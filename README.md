@@ -17,7 +17,7 @@ Python API for CartoDB Dashboard. Provides access to the following operations on
 | < 0.2.1 | 2.3.0 -  2.9.1   |
 
 
-# Requirements: 
+# Requirements:
 
 + Simplejson
 + httplib2
@@ -55,3 +55,12 @@ client.import_data('test/testdata/localities.zip')
 ```bash
 python setup.py test
 ```
+
+# Publish to PyPi
+You will need an account on [PyPi](https://pypi.python.org/pypi) to be able to publish a new version of this package.
+
+## Register and upload
+`python setup.py sdist register upload`
+
+## Install locally
+The new version should be available for install as per the "Install from PyPi" section above.
