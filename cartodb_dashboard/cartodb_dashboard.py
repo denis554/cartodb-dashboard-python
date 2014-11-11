@@ -100,7 +100,6 @@ class CartoDbDashboard:
             complete = False
             last_state = ''
             while not complete:
-               # import_status_url = "https://%s.cartodb.com/api/v1/imports/%s?api_key=%s" % (self.options['u'], data['item_queue_id'], self.options['k'])
                 import_status_url = IMPORT_URL % {'user': self.user, 'domain': self.host, 'protocol': self.protocol, 'sql_version': self.sql_version, 'import_version': self.import_version, 'api_key': self.key,'queue_id':data['item_queue_id']}
                 req = urllib2.Request(import_status_url)
                 response = urllib2.urlopen(req)
