@@ -1,199 +1,211 @@
 # -*- encoding: utf-8 -*-
-from urllib import urlencode
+
 from httplib2 import Http
-from os import path
+
+import os
+import urllib
+import urllib2
+import base64
+import json
+import sys
+import argparse
+
+
+try:
+    import requests
+except ImportError:
+    print 'The requests package is required: http://docs.python-requests.org/en/latest/user/install/#install'
+    sys.exit()
+
 
 try:
     import json
 except ImportError:
     import simplejson as json
 
-IMPORT_URL = '%(protocol)s://%(user)s.%(domain)s/api/%(api_version)s/imports'
-SESSION_URL = '%(protocol)s://%(user)s.%(domain)s/sessions/create'
-TABLES_URL = '%(protocol)s://%(user)s.%(domain)s/api/%(api_version)s/tables'
-VIZ_URL = '%(protocol)s://%(user)s.%(domain)s/api/%(api_version)s/viz'
+SQL_URL = "%(protocol)s://%(user)s.%(domain)s/api/%(sql_version)s/sql"
+IMPORT_URL = '%(protocol)s://%(user)s.%(domain)s/api/%(import_version)s/imports/%(queue_id)s?api_key=%(api_key)s'
+
 
 
 class CartoDBDashboardException(Exception):
     pass
 
 
-class CartoDBTableInfo:
-    def __init__(self, table_info_response):
-        self.table_viz_id = table_info_response['table_visualization']['id']
-        self.table_map_id = table_info_response['table_visualization']['map_id']
-        self.table_privacy = table_info_response['table_visualization']['table']['privacy']
-        self.table_id = table_info_response['table_visualization']['table']['id']
-        self.table_name = table_info_response['table_visualization']['table']['name']
-        self.updated_at = table_info_response['table_visualization']['table']['updated_at']
-        self.created_at = table_info_response['table_visualization']['created_at']
-
 
 class CartoDbDashboard:
-    def __init__(self, cartodb_domain, user, password, host='cartodb.com', protocol='https', api_version='v1'):
-        self.import_url = IMPORT_URL % {'user': cartodb_domain, 'domain': host, 'protocol': protocol,
-                                        'api_version': api_version}
-        self.session_url = SESSION_URL % {'user': cartodb_domain, 'domain': host, 'protocol': protocol}
-        self.table_url = TABLES_URL % {'user': cartodb_domain, 'domain': host, 'protocol': protocol,
-                                       'api_version': api_version}
-        self.viz_url = VIZ_URL % {'user': cartodb_domain, 'domain': host, 'protocol': protocol,
-                                  'api_version': api_version}
-        self.client = Http()
-        self.session_user = user
-        self.session_password = password
+    def __init__(self, user, key, host='cartodb.com', protocol='https', sql_version='v2', import_version='v1', verbose=True):
 
-    @property
-    def request_session_headers(self):
-        body = {'email': self.session_user, 'password': self.session_password}
-        headers = {'Content-type': 'application/x-www-form-urlencoded'}
-        response, content = self.client.request(self.session_url, 'POST', headers=headers, body=urlencode(body))
-        headers['Cookie'] = response['set-cookie']
-        return headers
+        self.user = user
+        self.key = key
+        self.host = host
+        self.protocol = protocol
+        self.sql_version = sql_version
+        self.import_version = import_version
+        self.verbose = verbose
 
-    def req(self, url, http_method="GET", http_headers={}, body=''):
-        if http_method == "POST":
-            resp, content = self.client.request(url, "POST", body=body, headers=http_headers)
-        elif http_method == "PUT":
-            resp, content = self.client.request(url, "PUT", body=body, headers=http_headers)
-        elif http_method == "DELETE":
-            resp, content = self.client.request(url, "DELETE", headers=http_headers)
-        else:
-            resp, content = self.client.request(url, "GET", headers=http_headers)
+        self.sql_url = SQL_URL % {'user': user, 'domain': host, 'protocol': protocol, 'sql_version': sql_version}
+        self.import_url = IMPORT_URL % {'user': user, 'domain': host, 'protocol': protocol,'import_version': import_version, 'api_key': key, 'queue_id':''}
 
-        if resp['status'] == '200':
-            return json.loads(content)
-        elif resp['status'] == '400':
-            raise CartoDBDashboardException(json.loads(content))
-        elif resp['status'] == '404':
-            raise CartoDBDashboardException('Page Not Found')
-        elif resp['status'] == '500':
-            raise CartoDBDashboardException('internal server error')
 
-        return None
+    def _log(self, message):
+        if self.verbose == True:
+            print message
 
-    def __import_data(self, datafile):
-        sessionbody = {'email': self.session_user, 'password': self.session_password}
-        sessionheaders = {'Content-type': 'application/x-www-form-urlencoded'}
-        response, content = self.client.request(self.session_url, 'POST', headers=sessionheaders, body=urlencode(sessionbody))
+    def _error(self, error):
+        print error
+        sys.exit()
 
-        def encode(file_path, fields=[]):
-            boundary = '----------boundary------'
-            crlf = '\r\n'
-            encode_body = []
-
-            for key, value in fields:
-                encode_body.extend(
-                    ['--{0}'.format(boundary),
-                     'Content-Disposition: form-data; name="%s"' % key,
-                     '',
-                     value,
-                    ])
-
-            file_name = path.basename(file_path)
-            f = open(file_path, 'rb')
-            file_content = f.read()
-            f.close()
-            encode_body.extend(
-                ['--' + boundary,
-                 'Content-Disposition: form-data; name="file"; filename="%s"'
-                 % file_name,
-                 'Content-Type: application/octet-stream',
-                 '',
-                 file_content,
-                ])
-
-            encode_body.extend(['--' + boundary + '--', ''])
-            return 'multipart/form-data; boundary=%s' % boundary, crlf.join(encode_body)
-
-        content_type, body = encode(datafile)
-        headers = {'Content-Type': content_type, 'Cookie': response['set-cookie']}
-
-        return self.req(self.import_url, 'POST', http_headers=headers, body=body)['item_queue_id']
-
-    def __convert_data_type(self, column, datatype, table):
-        headers = self.request_session_headers
-        body = {'name': column, 'type': datatype}
-        url = self.table_url + '/' + table + '/columns/' + column
-        return self.req(url, 'PUT', http_headers=headers, body=urlencode(body))
-
-    def check_imports(self):
-        headers = self.request_session_headers
-        return self.req(self.import_url, 'GET', http_headers=headers)
-
-    def check_import(self, importid):
-        headers = self.request_session_headers
-        return self.req(self.import_url + '/' + str(importid), 'GET', http_headers=headers)
-
-    def convert_data_type(self, column, datatype, table):
+    def sql_api(self, sql):
+        # execute sql request over API
         try:
-            self.__convert_data_type(column, datatype, table)
+            params = {
+                'api_key' : self.key,
+                'q'       : sql
+            }
+            r = requests.get(self.sql_url, params=params)
+            return r.json()
+        except CartoDBDashboardException as e:
+            self._log('some error occurred: %s' %(e))
+
+
+    def convert_data_type(self, column, coltype, table):
+        try:
+            if coltype == 'string':
+                coltype = 'text'
+            elif coltype == 'number':
+                coltype = 'numeric USING NULLIF( %s , \'\')::numeric' %(column)
+
+            sql = "ALTER TABLE %s ALTER COLUMN %s TYPE %s" % (table, column, coltype)
+            data = self.sql_api(sql)
             return True
         except CartoDBDashboardException as e:
-            print ("some error occurred:", e)
+            self._log('some error occurred: %s' %(e))
             return False
 
-    def import_data(self, datafile):
+
+
+    def import_data(self, datafile, type_guessing = 'true'):
         try:
-            importid = self.__import_data(datafile)
-            res = None
-            check = False
-            while not check:
-                res = self.check_import(importid)
-                if res['state'] == 'uploading' or res['state'] == 'importing':
-                    continue
-                elif res['state'] == 'complete':
-                    check = True
 
-            return check, res['table_name']
-        except CartoDBDashboardException as e:
-            print ("some error occurred:", e)
-            return False
+            params = {
+                'type_guessing' : type_guessing
+            }
 
-    def get_table(self, table):
-        try:
-            headers = self.request_session_headers
-            url = self.table_url + '/' + table
-            return self.req(url, 'GET', http_headers=headers)
-        except Exception as e:
-            raise CartoDBDashboardException("An error occurred trying to get table information for table:" + table, e)
+            r = requests.post(self.import_url, files={'file': open(datafile, 'rb')}, params=params)
 
-    def __delete_table(self, table_viz_id):
-        headers = self.request_session_headers
-        url = self.viz_url + '/' + table_viz_id
-        return self.req(url, 'DELETE', http_headers=headers)
+            data = r.json()
+            if data['success']!=True:
+                self._error("Upload failed")
+            complete = False
+            last_state = ''
+            while not complete:
+                import_status_url = IMPORT_URL % {'user': self.user, 'domain': self.host, 'protocol': self.protocol, 'sql_version': self.sql_version, 'import_version': self.import_version, 'api_key': self.key,'queue_id':data['item_queue_id']}
+                req = urllib2.Request(import_status_url)
+                response = urllib2.urlopen(req)
+                d = json.loads(str(response.read()))
+                if last_state!=d['state']:
+                    last_state=d['state']
+                    if d['state']=='uploading':
+                        self._log('Uploading file...')
+                    elif d['state']=='importing':
+                        self._log('Importing data...')
+                    elif d['state']=='complete':
+                        complete = True
+                        self._log('Table "%s" created' % d['table_name'])
+                        return complete,d['table_name']
+                if d['state']=='failure':
+                    self._error(d['get_error_text']['what_about'])
 
-    def delete_data(self, table):
-        try:
-            #check the table exists and return the table viz id
-            table_vis_id = self.get_table(table)['table_visualization']['id']
-            #send delete command
-            return self.__delete_table(table_vis_id)
 
         except CartoDBDashboardException as e:
-            print ("some error occurred:", e)
+            self._log('some error occurred: %s' %(e))
             return False
+
+
+    def drop_table(self, table):
+        # drop a table '
+        try:
+            self._log("Dropping table %s"  % table)
+            sql = "DROP TABLE %s" % table
+            data = self.sql_api(sql)
+            if 'error' in data.keys():
+                self._error(data['error'])
+            return True
+        except CartoDBDashboardException as e:
+            self._log('some error occurred: %s' %(e))
+            return False
+
+    def clear_rows(self, table):
+        # clear all rows from a table
+        try:
+            self._log("Deleting all rows")
+            sql = "DELETE FROM %s" % table
+            data = self.sql_api(sql)
+            if 'error' in data.keys():
+                self._error(data['error'])
+            return True
+        except CartoDBDashboardException as e:
+            self._log('some error occurred: %s' %(e))
+            return False
+
+
+    def clean_table(self,table):
+        # clean up table for speed
+        try:
+            self._log("Cleaning up unused space")
+            sql = "VACUUM FULL %s" % table
+            data = self.sql_api(sql)
+            if 'error' in data.keys():
+                self._error(data['error'])
+            self._log("Optimizing existing indexes")
+            sql = "ANALYZE %s" % table
+            data = self.sql_api(sql)
+            if 'error' in data.keys():
+                self._error(data['error'])
+            return True
+        except CartoDBDashboardException as e:
+            self._log('some error occurred: %s' %(e))
+            return False
+
+
+    def get_row_count(self,table):
+        try:
+            sql = "SELECT count(*) FROM %s" % table
+
+            data = self.sql_api(sql)
+            count = data['rows'][0]['count']
+            return count
+        except CartoDBDashboardException as e:
+            self._log('some error occurred: %s' %(e))
+            return 0
+
+
 
     def rename_table(self, table_name, new_table_name):
         try:
-            body = urlencode({ 'name': new_table_name })
-
-            headers = self.request_session_headers
-            url = self.table_url  + '/' + table_name
-            self.req(url, 'PUT', http_headers=headers, body=body)
-            return True
+            if self.table_exists(table_name):
+                sql = "ALTER TABLE %s  RENAME TO %s" % (table_name, new_table_name)
+                data = self.sql_api(sql)
+                if 'error' in data.keys():
+                    self._error(data['error'])
+                return True
+            return False
 
         except CartoDBDashboardException as e:
-            print ("some error occurred:", e)
+            self._log('some error occurred: %s' %(e))
             return False
 
 
     def table_exists(self, table_name):
         try:
-            headers = self.request_session_headers
-            url = self.table_url + '/' + table_name
-            self.req(url, 'GET', http_headers=headers)
-            return True
+            sql =  "SELECT relname FROM pg_class WHERE relname = '%s' " % table_name
+            data = self.sql_api(sql)
+            if data['total_rows'] > 0:
+                if data['rows'][0]['relname'] == table_name:
+                    return True
+            return False
 
         except CartoDBDashboardException as e:
-            print ("Table " + table_name + " doesn't exist")
+            self._log('some error occurred: %s' %(e))
             return False
