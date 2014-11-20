@@ -9,8 +9,6 @@ TEST_CSV = 'test/testdata/schools.csv'
 
 class CartoDbDashboardTest(object):
 
-
-
     def test_import_shapefile(self):
         result, table = self.client.import_data(TEST_SHPFILE)
         self.assertTrue(result)
@@ -24,21 +22,18 @@ class CartoDbDashboardTest(object):
             self.client.drop_table(table)
 
     def test_import_csv_update_column(self):
-        result, table = self.client.import_data(TEST_SHPFILE)
+        result, table = self.client.import_data(TEST_CSV)
         self.assertTrue(result)
         self.assertTrue(self.client.convert_data_type("POINT_PID", "number", table))
         if result:
             self.client.drop_table(table)
 
 
-
     def test_delete_table(self):
-        result, table = self.client.import_data(TEST_CSV)
-        self.assertTrue(result)
-        self.client.drop_table(table)
+        result, table = self.client.import_data(TEST_CSV)        
+        self.assertTrue(self.client.drop_table(table))
 
     def test_rename_table(self):
-
         result, table = self.client.import_data(TEST_CSV)
         rename_success = self.client.rename_table(table, NEW_TABLE_NAME)
         self.assertTrue(rename_success)
@@ -73,3 +68,4 @@ class CartoDbDashboardTestClient(CartoDbDashboardTest, unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
