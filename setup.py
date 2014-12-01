@@ -1,7 +1,7 @@
 #from distutils.core import setup
 from setuptools import setup
 
-VERSION  = '0.2.8'
+VERSION  = '0.2.9'
 REQUIRES = ['simplejson', 'httplib2']
 URL      = 'https://github.com/realestate-com-au/cartodb-dashboard-python'
 
