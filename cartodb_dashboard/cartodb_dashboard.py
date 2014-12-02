@@ -175,7 +175,7 @@ class CartoDbDashboard:
 
     def get_row_count(self,table):
         try:
-            count = 0
+            count = -1
             sql = "SELECT count(*) FROM %s" % table
             data = self.sql_api(sql)
             if data:
@@ -208,15 +208,8 @@ class CartoDbDashboard:
 
     def table_exists(self, table_name):
         try:
-            sql =  "SELECT count(*) FROM pg_class WHERE relkind = 'r' and relname = '%s' " % table_name
-            data = self.sql_api(sql)
-            print table_name
-            if data['rows'][0]['count'] > 0:
+            if self.get_row_count(table_name) >=0:
                 return True
-            #check again to overcome refresh issue
-            if self.get_row_count(table_name) >0:
-                return True
-            print " Does not exist"
             return False
 
         except CartoDBDashboardException as e:
