@@ -87,7 +87,7 @@ class CartoDbDashboard:
 
     def import_data(self, datafile, type_guessing = 'true'):
         try:
-
+            self._log('NEW..')
             params = {
                 'type_guessing' : type_guessing
             }
@@ -111,12 +111,15 @@ class CartoDbDashboard:
                     elif d['state']=='importing':
                         self._log('Importing data...')
                     elif d['state']=='complete':
-                        complete = True
-                        self._log('Table "%s" created' % d['table_name'])
-                        return complete,d['table_name']
+                        if d['success']==True:
+                            complete = True
+                            self._log('Table "%s" created' % d['table_name'])
+                            return complete,d['table_name']
+                        else:
+                            self._error(d['get_error_text']['what_about'])
+
                 if d['state']=='failure':
                     self._error(d['get_error_text']['what_about'])
-
 
         except CartoDBDashboardException as e:
             self._log('some error occurred: %s' %(e))
@@ -171,16 +174,17 @@ class CartoDbDashboard:
 
     def get_row_count(self,table):
         try:
+            count = 0
             sql = "SELECT count(*) FROM %s" % table
-
             data = self.sql_api(sql)
-            count = data['rows'][0]['count']
+            if data:
+                if 'error' in data.keys():
+                    return count
+                count = data['rows'][0]['count']
             return count
         except CartoDBDashboardException as e:
             self._log('some error occurred: %s' %(e))
             return 0
-
-
 
     def rename_table(self, table_name, new_table_name):
         try:
@@ -199,11 +203,15 @@ class CartoDbDashboard:
 
     def table_exists(self, table_name):
         try:
-            sql =  "SELECT relname FROM pg_class WHERE relname = '%s' " % table_name
+            sql =  "SELECT count(*) FROM pg_class WHERE relkind = 'r' and relname = '%s' " % table_name
             data = self.sql_api(sql)
-            if data['total_rows'] > 0:
-                if data['rows'][0]['relname'] == table_name:
-                    return True
+            print table_name
+            if data['rows'][0]['count'] > 0:
+                return True
+            #check again to overcome refresh issue
+            if self.get_row_count(table_name) >0:
+                return True
+            print " Does not exist"
             return False
 
         except CartoDBDashboardException as e:
