@@ -9,6 +9,7 @@ import base64
 import json
 import sys
 import argparse
+import time
 
 
 try:
@@ -187,6 +188,10 @@ class CartoDbDashboard:
             return 0
 
     def rename_table(self, table_name, new_table_name):
+        print "Start renaming process by a little wait of 30s from %s" % time.ctime()
+        time.sleep( 60 )
+        print "Hopefully we are now good to go"
+
         try:
             if self.table_exists(table_name):
                 sql = "ALTER TABLE %s  RENAME TO %s" % (table_name, new_table_name)
