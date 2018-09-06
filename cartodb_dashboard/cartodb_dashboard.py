@@ -35,7 +35,7 @@ class CartoDBDashboardException(Exception):
 
 
 class CartoDbDashboard:
-    def __init__(self, user, key, host='cartodb.com', protocol='https', sql_version='v2', import_version='v1', verbose=True):
+    def __init__(self, user, key, host='carto.com', protocol='https', sql_version='v2', import_version='v1', verbose=True):
 
         self.user = user
         self.key = key
